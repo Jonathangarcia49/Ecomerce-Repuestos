@@ -34,9 +34,14 @@ services:
     working_dir: /app
     volumes:
       - ./frontend:/app
+      - /app/node_modules  # Volumen anónimo para node_modules (MEJORA DE PERFORMANCE)
     command: sh -c "npm install && npm start"
     environment:
       - REACT_APP_API_URL=http://localhost:4000/api
+      - CHOKIDAR_USEPOLLING=false  # Desactiva polling (más rápido)
+      - WATCHPACK_POLLING=false    # Desactiva polling de watchpack
+      - FAST_REFRESH=true          # Hot reload más rápido
+      - WDS_SOCKET_PORT=3000       # Puerto para websocket del hot reload
     ports:
       - "3000:3000"
     depends_on:
