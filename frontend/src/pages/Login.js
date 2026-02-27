@@ -46,7 +46,7 @@ export default function Login() {
 
         {/* PANEL IZQUIERDO */}
         <div className="p-5" style={{ width: "50%" }}>
-          <h3 className="mb-4 fw-bold">AutoParts</h3>
+          <h3 className="mb-4 fw-bold">Login</h3>
 
           {err && (
             <div className="alert alert-danger">
@@ -99,14 +99,13 @@ export default function Login() {
           className="d-flex flex-column justify-content-center align-items-center text-white"
           style={{
             width: "50%",
-            // background: "linear-gradient(135deg, #cb2d3e, #ef473a)",
             background: "linear-gradient(135deg, #212529, #495057)",
             padding: "40px"
           }}
         >
           <h2 className="fw-bold mb-3">Bienvenido</h2>
           <p className="text-center">
-            Gestiona tus productos, categorías y ventas
+            Gestiona tus productos y ventas
             con un sistema profesional y moderno.
           </p>
         </div>

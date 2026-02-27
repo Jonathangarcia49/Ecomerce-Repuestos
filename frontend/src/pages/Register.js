@@ -19,7 +19,6 @@ export default function Register() {
     e.preventDefault();
     setErr('');
 
-    // Validaciones simples
     if (!form.name || !form.email || !form.password) {
       return setErr('Todos los campos son obligatorios');
     }
@@ -52,54 +51,94 @@ export default function Register() {
   };
 
   return (
-    <div className="container py-4" style={{ maxWidth: 520 }}>
-      <h3 className="mb-3">Registro</h3>
+    <div
+      className="d-flex justify-content-center align-items-center"
+      style={{ 
+       minHeight: '100vh',
+       backgroundColor: '#E6ECF5'
+  }}
+    >
+      <div
+        className="bg-white p-5"
+        style={{
+          width: '100%',
+          maxWidth: 460,
+          borderRadius: 20,
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.08)'
+        }}
+      >
+        <h2 className="fw-bold mb-4">Crear Cuenta</h2>
 
-      {err && <div className="alert alert-danger">{err}</div>}
+        {err && (
+          <div className="alert alert-danger py-2 text-center">
+            {err}
+          </div>
+        )}
 
-      <form onSubmit={onSubmit} className="card p-4 shadow-sm">
-        <label className="form-label">Nombre</label>
-        <input
-          className="form-control"
-          required
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-        />
+        <form onSubmit={onSubmit}>
+          <div className="mb-3">
+            <label className="form-label">Nombre</label>
+            <input
+              className="form-control form-control-lg"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
+          </div>
 
-        <label className="form-label mt-3">Email</label>
-        <input
-          type="email"
-          className="form-control"
-          required
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-        />
+          <div className="mb-3">
+            <label className="form-label">Email</label>
+            <input
+              type="email"
+              className="form-control form-control-lg"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
+          </div>
 
-        <label className="form-label mt-3">Password</label>
-        <input
-          type="password"
-          className="form-control"
-          required
-          value={form.password}
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
-        />
+          <div className="mb-3">
+            <label className="form-label">Password</label>
+            <input
+              type="password"
+              className="form-control form-control-lg"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+            />
+          </div>
 
-        <label className="form-label mt-3">Confirmar Password</label>
-        <input
-          type="password"
-          className="form-control"
-          required
-          value={form.confirmPassword}
-          onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-        />
+          <div className="mb-4">
+            <label className="form-label">Confirmar Password</label>
+            <input
+              type="password"
+              className="form-control form-control-lg"
+              value={form.confirmPassword}
+              onChange={(e) =>
+                setForm({ ...form, confirmPassword: e.target.value })
+              }
+            />
+          </div>
 
-        <button
-          className="btn btn-dark mt-4 w-100"
-          disabled={loading}
-        >
-          {loading ? 'Creando cuenta...' : 'Crear cuenta'}
-        </button>
-      </form>
+          <button
+            className="btn btn-secondary btn-lg w-100"
+            disabled={loading}
+            style={{ borderRadius: 12 }}
+          >
+            {loading ? 'Creando cuenta...' : 'Crear cuenta'}
+          </button>
+        </form>
+
+        <div className="text-center mt-4">
+          <small className="text-muted">
+            ¿Ya tienes cuenta?{' '}
+            <span
+              onClick={() => nav('/login')}
+              style={{ cursor: 'pointer' }}
+              className="fw-semibold"
+            >
+              Inicia sesión
+            </span>
+          </small>
+        </div>
+      </div>
     </div>
   );
 }
