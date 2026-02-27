@@ -54,7 +54,7 @@ export default function Checkout() {
 
   return (
     <div className="container py-4" style={{ maxWidth: 640 }}>
-      <h3>💳 Checkout</h3>
+      <h3>Checkout</h3>
 
       {msg && <div className="alert alert-success">{msg}</div>}
       {err && <div className="alert alert-danger">{err}</div>}
@@ -104,7 +104,7 @@ export default function Checkout() {
             </button>
 
             <small className="text-muted mt-2 text-center d-block">
-              🔒 Pago simulado - No se procesará ningún cargo real
+              Pago simulado - No se procesará ningún cargo real
             </small>
           </div>
         </>

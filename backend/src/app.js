@@ -1,4 +1,3 @@
-
 import express from 'express';
 import cors from 'cors';
 import routes from './routes/index.js';
@@ -7,13 +6,18 @@ import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger.js';
 import { seedAdmin } from './seed/seedAdmin.js';
 import { seedProducts } from './seed/seedProducts.js';
+import path from 'path';
 
 const app = express();
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
+// 🔥 uploads debe ir después de crear app
+app.use('/uploads', express.static(path.resolve('uploads')));
+
 app.get('/', (_req, res) => res.json({ ok: true, service: 'api-repuestos' }));
+
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api', routes);
 

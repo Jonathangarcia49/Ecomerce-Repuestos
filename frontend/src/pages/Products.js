@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getProducts } from '../services/productService';
@@ -13,7 +12,9 @@ export default function Products() {
     setProducts(res.data);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { 
+    load(); 
+  }, []);
 
   const add = async (id) => {
     setMsg('');
@@ -27,24 +28,54 @@ export default function Products() {
 
   return (
     <div className="container py-4">
-      <h3 className="mb-3">Repuestos</h3>
+      <h3 className="mb-4">Repuestos</h3>
+
       {msg && <div className="alert alert-info">{msg}</div>}
-      <div className="row g-3">
-        {products.map(p => (
+
+      <div className="row g-4">
+        {products.map((p) => (
           <div className="col-12 col-md-6 col-lg-4" key={p.id}>
-            <div className="card h-100 shadow-sm">
-              {p.image && <img src={p.image} className="card-img-top" alt={p.name} style={{height: 190, objectFit:'cover'}} />}
+            <div className="card h-100 shadow-sm product-card">
+
+              {p.image && (
+                <div className="product-image-container">
+                  <img
+                    src={`http://localhost:4000/uploads/${p.image}`}
+                    alt={p.name}
+                  />
+                </div>
+              )}
+
               <div className="card-body d-flex flex-column">
                 <h5 className="card-title">{p.name}</h5>
-                <p className="card-text text-muted" style={{minHeight: 48}}>{p.description || '—'}</p>
+
+                <p className="card-text text-muted product-description">
+                  {p.description || '—'}
+                </p>
+
                 <div className="d-flex justify-content-between align-items-center mt-auto">
-                  <strong className="text-success">${p.price}</strong>
+                  <strong className="text-success fs-5">
+                    ${p.price}
+                  </strong>
+
                   <div className="d-flex gap-2">
-                    <Link className="btn btn-outline-dark btn-sm" to={`/products/${p.id}`}>Detalle</Link>
-                    <button className="btn btn-dark btn-sm" onClick={() => add(p.id)}>Agregar</button>
+                    <Link
+                      className="btn btn-outline-dark btn-sm"
+                      to={`/products/${p.id}`}
+                    >
+                      Detalle
+                    </Link>
+
+                    <button
+                      className="btn btn-dark btn-sm"
+                      onClick={() => add(p.id)}
+                    >
+                      Agregar
+                    </button>
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
         ))}
