@@ -42,6 +42,7 @@ export default function Products() {
                   <img
                     src={`http://localhost:4000/uploads/${p.image}`}
                     alt={p.name}
+                    className="product-img"
                   />
                 </div>
               )}
@@ -55,7 +56,7 @@ export default function Products() {
 
                 <div className="d-flex justify-content-between align-items-center mt-auto">
                   <strong className="text-success fs-5">
-                    ${p.price}
+                     ${Number(p.price).toFixed(2)}
                   </strong>
 
                   <div className="d-flex gap-2">
