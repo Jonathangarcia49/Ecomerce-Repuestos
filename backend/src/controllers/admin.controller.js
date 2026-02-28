@@ -7,7 +7,7 @@ import { CartItem } from '../models/CartItem.js';
 import { Op } from 'sequelize';
 
 // ====== DASHBOARD ======
-export const getDashboardStats = async (req, res) => {
+export const getDashboardStats = async (req, res, next) => {
   try {
     const [totalUsers, totalProducts, totalOrders, activeCartsCount] = await Promise.all([
       User.count({ where: { role: 'CLIENTE' } }),
@@ -42,12 +42,12 @@ export const getDashboardStats = async (req, res) => {
       lowStockProducts
     });
   } catch (e) {
-    res.status(500).json({ message: e.message });
+    next(e);
   }
 };
 
 // ====== GESTIÓN DE USUARIOS ======
-export const getAllUsers = async (req, res) => {
+export const getAllUsers = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, role, search } = req.query;
     const offset = (page - 1) * limit;
@@ -82,11 +82,11 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-export const updateUserRole = async (req, res) => {
+export const updateUserRole = async (req, res, next) => {
   try {
     const { role } = req.body;
-    if (!['ADMIN', 'CLIENTE'].includes(role)) {
-      return res.status(400).json({ message: 'Role inválido' });
+    if (!['ADMIN', 'VENDEDOR', 'CLIENTE'].includes(role)) {
+      return res.status(400).json({ message: 'Role inválido. Roles válidos: ADMIN, VENDEDOR, CLIENTE' });
     }
 
     const user = await User.findByPk(req.params.userId);
@@ -106,7 +106,7 @@ export const updateUserRole = async (req, res) => {
   }
 };
 
-export const getUserDetails = async (req, res) => {
+export const getUserDetails = async (req, res, next) => {
   try {
     const user = await User.findByPk(req.params.userId, {
       attributes: { exclude: ['password'] },
@@ -132,7 +132,7 @@ export const getUserDetails = async (req, res) => {
   }
 };
 
-export const deleteUser = async (req, res) => {
+export const deleteUser = async (req, res, next) => {
   try {
     const user = await User.findByPk(req.params.userId);
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
@@ -150,7 +150,7 @@ export const deleteUser = async (req, res) => {
 };
 
 // ====== GESTIÓN DE ÓRDENES ======
-export const getAllOrders = async (req, res) => {
+export const getAllOrders = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, status, userId } = req.query;
     const offset = (page - 1) * limit;
@@ -180,7 +180,7 @@ export const getAllOrders = async (req, res) => {
   }
 };
 
-export const getOrderDetails = async (req, res) => {
+export const getOrderDetails = async (req, res, next) => {
   try {
     const order = await Order.findByPk(req.params.orderId, {
       include: [
@@ -208,7 +208,7 @@ export const getOrderDetails = async (req, res) => {
   }
 };
 
-export const updateOrderStatus = async (req, res) => {
+export const updateOrderStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
     const validStatuses = ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'];
@@ -230,7 +230,7 @@ export const updateOrderStatus = async (req, res) => {
 };
 
 // ====== REPORTES ======
-export const getSalesReport = async (req, res) => {
+export const getSalesReport = async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
 
@@ -267,7 +267,7 @@ export const getSalesReport = async (req, res) => {
   }
 };
 
-export const getInventoryReport = async (req, res) => {
+export const getInventoryReport = async (req, res, next) => {
   try {
     const products = await Product.findAll({
       order: [['stock', 'ASC']]
@@ -295,7 +295,7 @@ export const getInventoryReport = async (req, res) => {
 };
 
 // ====== PRODUCTOS AVANZADO ======
-export const bulkUpdateStock = async (req, res) => {
+export const bulkUpdateStock = async (req, res, next) => {
   try {
     const { updates } = req.body; // [{ id: 1, stock: 50 }, { id: 2, stock: 30 }]
 
@@ -321,17 +321,16 @@ export const bulkUpdateStock = async (req, res) => {
   }
 };
 
-export const toggleProductActive = async (req, res) => {
+export const toggleProductActive = async (req, res, next) => {
   try {
     const product = await Product.findByPk(req.params.id);
     if (!product) return res.status(404).json({ message: 'Producto no encontrado' });
 
-    // Agregar campo 'active' al modelo si no existe
-    product.stock = product.stock === 0 ? 1 : 0; // Workaround: usar stock=0 como desactivado
+    product.active = !product.active;
     await product.save();
 
-    res.json({ message: 'Estado del producto actualizado', product });
+    res.json({ message: `Producto ${product.active ? 'activado' : 'desactivado'}`, product });
   } catch (e) {
-    res.status(500).json({ message: e.message });
+    next(e);
   }
 };
