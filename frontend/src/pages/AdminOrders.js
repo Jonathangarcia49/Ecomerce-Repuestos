@@ -1,247 +1,233 @@
 // frontend/src/pages/AdminOrders.js
 import { useEffect, useState } from 'react';
 import { getAllOrders, getOrderDetails, updateOrderStatus } from '../services/adminService';
+import { useToast } from '../context/ToastContext';
+import Spinner from '../components/Spinner';
+
+const STATUS_OPTIONS = [
+  { value: 'PAID',       label: 'Pagado' },
+  { value: 'PROCESSING', label: 'Procesando' },
+  { value: 'SHIPPED',    label: 'Enviado' },
+  { value: 'DELIVERED',  label: 'Entregado' },
+  { value: 'CANCELLED',  label: 'Cancelado' },
+  { value: 'REFUNDED',   label: 'Reembolsado' },
+];
+
+const STATUS_CHIP = {
+  PAID: 'status-PAID', PROCESSING: 'status-PROCESSING', SHIPPED: 'status-SHIPPED',
+  DELIVERED: 'status-DELIVERED', CANCELLED: 'status-CANCELLED', REFUNDED: 'status-REFUNDED',
+};
+
+const fmtDate = (iso) =>
+  new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 export default function AdminOrders() {
-  const [orders, setOrders] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
-  const [filters, setFilters] = useState({ page: 1, limit: 10, status: '' });
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState('');
-  const [err, setErr] = useState('');
+  const toast = useToast();
+  const [orders, setOrders]           = useState([]);
+  const [pagination, setPagination]   = useState({ page: 1, pages: 1, total: 0 });
+  const [filters, setFilters]         = useState({ page: 1, limit: 10, status: '' });
+  const [loading, setLoading]         = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  const load = async () => {
+  const load = () => {
     setLoading(true);
-    setErr('');
-    try {
-      const res = await getAllOrders(filters);
-      setOrders(res.data.orders);
-      setPagination(res.data.pagination);
-    } catch (e) {
-      setErr(e?.response?.data?.message || 'Error cargando órdenes');
-    } finally {
-      setLoading(false);
-    }
+    getAllOrders(filters)
+      .then((res) => { setOrders(res.data.orders); setPagination(res.data.pagination); })
+      .catch((e) => toast.error(e?.response?.data?.message || 'Error cargando órdenes'))
+      .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [filters]);
+  useEffect(load, [filters]);
 
-  const changeStatus = async (orderId, newStatus) => {
-    setMsg(''); setErr('');
-    try {
-      await updateOrderStatus(orderId, newStatus);
-      setMsg('✅ Status actualizado');
-      await load();
-      if (selectedOrder?.order.id === orderId) {
-        setSelectedOrder(null);
-      }
-    } catch (e) {
-      setErr(e?.response?.data?.message || 'Error');
-    }
+  const changeStatus = (orderId, newStatus) => {
+    updateOrderStatus(orderId, newStatus)
+      .then(() => {
+        toast.success('Estado actualizado');
+        load();
+        if (selectedOrder?.order?.id === orderId) {
+          setSelectedOrder((prev) => ({ ...prev, order: { ...prev.order, status: newStatus } }));
+        }
+      })
+      .catch((e) => toast.error(e?.response?.data?.message || 'Error'));
   };
 
-  const viewDetails = async (orderId) => {
-    try {
-      const res = await getOrderDetails(orderId);
-      setSelectedOrder(res.data);
-    } catch (e) {
-      setErr(e?.response?.data?.message || 'Error');
-    }
-  };
-
-  const statusColors = {
-    'PAID': 'success',
-    'PROCESSING': 'info',
-    'SHIPPED': 'primary',
-    'DELIVERED': 'success',
-    'CANCELLED': 'danger',
-    'REFUNDED': 'warning'
+  const viewDetails = (orderId) => {
+    getOrderDetails(orderId)
+      .then((res) => setSelectedOrder(res.data))
+      .catch((e) => toast.error(e?.response?.data?.message || 'Error'));
   };
 
   return (
     <div className="container py-4">
-      <h2 className="mb-4">📦 Gestión de Órdenes</h2>
+      <div className="admin-page-title">
+        <h2>📦 Órdenes</h2>
+        <span className="text-muted small">{pagination.total} pedidos</span>
+      </div>
 
-      {msg && <div className="alert alert-success">{msg}</div>}
-      {err && <div className="alert alert-danger">{err}</div>}
-
-      {/* Filtros */}
-      <div className="card shadow-sm mb-3">
-        <div className="card-body">
-          <div className="row g-2">
-            <div className="col-md-4">
-              <select
-                className="form-select"
-                value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value, page: 1 })}
-              >
-                <option value="">Todos los estados</option>
-                <option value="PAID">Pagado</option>
-                <option value="PROCESSING">Procesando</option>
-                <option value="SHIPPED">Enviado</option>
-                <option value="DELIVERED">Entregado</option>
-                <option value="CANCELLED">Cancelado</option>
-                <option value="REFUNDED">Reembolsado</option>
-              </select>
-            </div>
-            <div className="col-md-2">
-              <select
-                className="form-select"
-                value={filters.limit}
-                onChange={(e) => setFilters({ ...filters, limit: e.target.value, page: 1 })}
-              >
-                <option value="10">10 por página</option>
-                <option value="25">25 por página</option>
-                <option value="50">50 por página</option>
-              </select>
-            </div>
+      {/* Filters */}
+      <div className="ap-card p-3 mb-3">
+        <div className="row g-2 align-items-end">
+          <div className="col-md-4">
+            <select className="form-select" value={filters.status}
+              onChange={(e) => setFilters({ ...filters, status: e.target.value, page: 1 })}>
+              <option value="">Todos los estados</option>
+              {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </div>
+          <div className="col-md-2">
+            <select className="form-select" value={filters.limit}
+              onChange={(e) => setFilters({ ...filters, limit: e.target.value, page: 1 })}>
+              <option value="10">10 / pág</option>
+              <option value="25">25 / pág</option>
+              <option value="50">50 / pág</option>
+            </select>
+          </div>
+          <div className="col-md-2">
+            <button className="btn btn-outline-secondary w-100" onClick={load}>↻ Recargar</button>
           </div>
         </div>
       </div>
 
-      {/* Tabla de órdenes */}
-      <div className="card shadow-sm">
+      {/* Table */}
+      <div className="ap-card p-0 overflow-hidden">
         <div className="table-responsive">
           <table className="table table-hover mb-0">
-            <thead className="table-light">
+            <thead style={{ background: 'var(--surface-2)' }}>
               <tr>
-                <th>ID</th>
-                <th>Cliente</th>
-                <th>Total</th>
-                <th>Método Pago</th>
-                <th>Estado</th>
-                <th>Fecha</th>
-                <th>Acciones</th>
+                <th>ID</th><th>Cliente</th><th>Total</th><th>Pago</th><th>Estado</th><th>Fecha</th><th style={{ width: 50 }}></th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="7" className="text-center py-4">Cargando...</td></tr>
+                <tr><td colSpan={7} className="text-center py-4">
+                  <span className="spinner-border spinner-border-sm" />
+                </td></tr>
               ) : !orders.length ? (
-                <tr><td colSpan="7" className="text-center py-4 text-muted">No hay órdenes</td></tr>
-              ) : (
-                orders.map(o => (
-                  <tr key={o.id}>
-                    <td className="fw-bold">#{o.id}</td>
-                    <td>{o.User?.name || 'Usuario'}<br /><small className="text-muted">{o.User?.email}</small></td>
-                    <td className="fw-bold text-success">${o.total}</td>
-                    <td>{o.paymentMethod}</td>
-                    <td>
-                      <span className={`badge bg-${statusColors[o.status] || 'secondary'}`}>
-                        {o.status}
-                      </span>
-                    </td>
-                    <td>{new Date(o.createdAt).toLocaleDateString()}</td>
-                    <td>
-                      <button
-                        className="btn btn-sm btn-outline-primary"
-                        onClick={() => viewDetails(o.id)}
-                      >
-                        Ver detalles
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
+                <tr><td colSpan={7} className="text-center py-4 text-muted">Sin resultados</td></tr>
+              ) : orders.map((o) => (
+                <tr key={o.id}>
+                  <td className="fw-bold small">#{o.id}</td>
+                  <td>
+                    <div className="small fw-semibold">{o.User?.name || '—'}</div>
+                    <div className="text-muted" style={{ fontSize: '.72rem' }}>{o.User?.email}</div>
+                  </td>
+                  <td className="fw-bold text-success small">${Number(o.total).toFixed(2)}</td>
+                  <td className="small text-muted">{o.paymentMethod}</td>
+                  <td>
+                    <select
+                      className="form-select form-select-sm"
+                      style={{ minWidth: 130 }}
+                      value={o.status}
+                      onChange={(e) => changeStatus(o.id, e.target.value)}
+                    >
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s.value} value={s.value}>{s.label}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="small text-muted">{new Date(o.createdAt).toLocaleDateString('es-MX')}</td>
+                  <td>
+                    <button className="btn btn-sm btn-outline-secondary" onClick={() => viewDetails(o.id)}>🔍</button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
 
-        {/* Paginación */}
         {pagination.pages > 1 && (
-          <div className="card-footer d-flex justify-content-between align-items-center">
-            <small className="text-muted">
-              Mostrando {orders.length} de {pagination.total} órdenes
-            </small>
-            <div className="btn-group">
-              <button
-                className="btn btn-sm btn-outline-dark"
-                disabled={pagination.page === 1}
-                onClick={() => setFilters({ ...filters, page: pagination.page - 1 })}
-              >
-                Anterior
-              </button>
-              <button className="btn btn-sm btn-dark" disabled>
-                Página {pagination.page} de {pagination.pages}
-              </button>
-              <button
-                className="btn btn-sm btn-outline-dark"
-                disabled={pagination.page === pagination.pages}
-                onClick={() => setFilters({ ...filters, page: pagination.page + 1 })}
-              >
-                Siguiente
-              </button>
+          <div className="d-flex justify-content-between align-items-center px-3 py-2"
+               style={{ borderTop: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+            <small className="text-muted">{orders.length} de {pagination.total}</small>
+            <div className="d-flex gap-1">
+              <button className="btn btn-sm btn-outline-secondary"
+                disabled={filters.page <= 1}
+                onClick={() => setFilters({ ...filters, page: filters.page - 1 })}>‹</button>
+              <span className="btn btn-sm btn-outline-secondary disabled">
+                {filters.page} / {pagination.pages}
+              </span>
+              <button className="btn btn-sm btn-outline-secondary"
+                disabled={filters.page >= pagination.pages}
+                onClick={() => setFilters({ ...filters, page: filters.page + 1 })}>›</button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Modal de detalles */}
+      {/* Order detail modal */}
       {selectedOrder && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
+        <div className="modal show d-block" style={{ background: 'rgba(0,0,0,.45)' }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered">
+            <div className="modal-content" style={{ borderRadius: '1rem', border: 'none' }}>
               <div className="modal-header">
-                <h5 className="modal-title">Orden #{selectedOrder.order.id}</h5>
-                <button className="btn-close" onClick={() => setSelectedOrder(null)}></button>
+                <h5 className="modal-title fw-bold">Orden #{selectedOrder.order.id}</h5>
+                <button className="btn-close" onClick={() => setSelectedOrder(null)} />
               </div>
               <div className="modal-body">
-                <div className="row g-3 mb-4">
+                <div className="row g-3 mb-3">
                   <div className="col-md-6">
-                    <strong>Cliente:</strong> {selectedOrder.order.User?.name}<br />
-                    <small className="text-muted">{selectedOrder.order.User?.email}</small>
+                    <div className="text-muted small">Cliente</div>
+                    <div className="fw-semibold">{selectedOrder.order.User?.name}</div>
+                    <div className="text-muted small">{selectedOrder.order.User?.email}</div>
+                  </div>
+                  <div className="col-md-3">
+                    <div className="text-muted small">Total</div>
+                    <div className="fw-bold fs-5 text-success">${Number(selectedOrder.order.total).toFixed(2)}</div>
+                  </div>
+                  <div className="col-md-3">
+                    <div className="text-muted small">Estado</div>
+                    <span className={`status-chip ${STATUS_CHIP[selectedOrder.order.status] || ''}`}>
+                      {STATUS_OPTIONS.find((s) => s.value === selectedOrder.order.status)?.label || selectedOrder.order.status}
+                    </span>
                   </div>
                   <div className="col-md-6">
-                    <strong>Total:</strong> <span className="text-success fs-5">${selectedOrder.order.total}</span>
+                    <div className="text-muted small">Fecha</div>
+                    <div className="small">{fmtDate(selectedOrder.order.createdAt)}</div>
                   </div>
                   <div className="col-md-6">
-                    <strong>Método de pago:</strong> {selectedOrder.order.paymentMethod}
+                    <div className="text-muted small">Método de pago</div>
+                    <div className="small">{selectedOrder.order.paymentMethod}</div>
                   </div>
-                  <div className="col-md-6">
-                    <strong>Fecha:</strong> {new Date(selectedOrder.order.createdAt).toLocaleString()}
-                  </div>
+                  {selectedOrder.order.shippingAddress && (
+                    <div className="col-12">
+                      <div className="text-muted small">Dirección</div>
+                      <div className="small">{selectedOrder.order.shippingAddress}</div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label"><strong>Cambiar estado:</strong></label>
-                  <select
-                    className="form-select"
+                  <label className="form-label fw-semibold small">Cambiar estado</label>
+                  <select className="form-select form-select-sm" style={{ maxWidth: 200 }}
                     value={selectedOrder.order.status}
-                    onChange={(e) => changeStatus(selectedOrder.order.id, e.target.value)}
-                  >
-                    <option value="PAID">Pagado</option>
-                    <option value="PROCESSING">Procesando</option>
-                    <option value="SHIPPED">Enviado</option>
-                    <option value="DELIVERED">Entregado</option>
-                    <option value="CANCELLED">Cancelado</option>
-                    <option value="REFUNDED">Reembolsado</option>
+                    onChange={(e) => changeStatus(selectedOrder.order.id, e.target.value)}>
+                    {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
 
-                <h6>Productos</h6>
-                <div className="table-responsive">
-                  <table className="table table-sm">
-                    <thead>
-                      <tr>
-                        <th>Producto</th>
-                        <th>Cantidad</th>
-                        <th>Precio</th>
-                        <th>Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedOrder.items?.map(item => (
-                        <tr key={item.id}>
-                          <td>{item.Product?.name}</td>
-                          <td>{item.quantity}</td>
-                          <td>${item.price}</td>
-                          <td className="fw-bold">${(item.price * item.quantity).toFixed(2)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                {selectedOrder.items?.length > 0 && (
+                  <>
+                    <h6 className="fw-bold mb-2">Productos</h6>
+                    <div className="table-responsive">
+                      <table className="table table-sm">
+                        <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr></thead>
+                        <tbody>
+                          {selectedOrder.items.map((item) => (
+                            <tr key={item.id}>
+                              <td className="small">{item.Product?.name || `#${item.productId}`}</td>
+                              <td className="small">{item.quantity}</td>
+                              <td className="small">${Number(item.price).toFixed(2)}</td>
+                              <td className="small fw-semibold">${(item.price * item.quantity).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={() => setSelectedOrder(null)}>Cerrar</button>
               </div>
             </div>
           </div>
@@ -250,3 +236,4 @@ export default function AdminOrders() {
     </div>
   );
 }
+
