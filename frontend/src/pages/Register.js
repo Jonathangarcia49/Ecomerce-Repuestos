@@ -1,47 +1,40 @@
 import { useState } from 'react';
-import { register } from '../services/authService';
-import { useNavigate } from 'react-router-dom';
+import { register as registerApi } from '../services/authService';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
   const nav = useNavigate();
+  const { login } = useAuth();
 
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
-
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+
+  const pwStrength = (pw) => {
+    if (pw.length < 4) return { level: 0, label: '' };
+    if (pw.length < 8) return { level: 1, label: 'Débil', color: '#dc2626' };
+    if (!/(?=.*[A-Z])(?=.*\d)/.test(pw)) return { level: 2, label: 'Regular', color: '#ca8a04' };
+    return { level: 3, label: 'Fuerte', color: '#16a34a' };
+  };
+  const strength = pwStrength(form.password);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr('');
 
-    if (!form.name || !form.email || !form.password) {
+    if (!form.name.trim() || !form.email.trim() || !form.password) {
       return setErr('Todos los campos son obligatorios');
     }
-
-    if (form.password.length < 6) {
-      return setErr('La contraseña debe tener mínimo 6 caracteres');
-    }
-
     if (form.password !== form.confirmPassword) {
       return setErr('Las contraseñas no coinciden');
     }
 
     try {
       setLoading(true);
-      const res = await register({
-        name: form.name,
-        email: form.email,
-        password: form.password
-      });
-
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-
+      const res = await registerApi({ name: form.name.trim(), email: form.email.trim(), password: form.password });
+      login(res.data.token, res.data.user);
       nav('/');
     } catch (e2) {
       setErr(e2?.response?.data?.message || 'Error al registrar');
@@ -51,92 +44,113 @@ export default function Register() {
   };
 
   return (
-    <div
-      className="d-flex justify-content-center align-items-center"
-      style={{ 
-       minHeight: '100vh',
-       backgroundColor: '#E6ECF5'
-  }}
-    >
+    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 'calc(100vh - 64px)', background: '#f1f5f9' }}>
       <div
-        className="bg-white p-5"
-        style={{
-          width: '100%',
-          maxWidth: 460,
-          borderRadius: 20,
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.08)'
-        }}
+        className="shadow-lg"
+        style={{ width: 860, maxWidth: '95%', borderRadius: 20, overflow: 'hidden', background: '#fff', display: 'flex' }}
       >
-        <h2 className="fw-bold mb-4">Crear Cuenta</h2>
+        {/* Left panel */}
+        <div className="auth-panel-left">
+          <h4 className="fw-bold mb-1">Crear cuenta</h4>
+          <p className="text-muted mb-4" style={{ fontSize: '.9rem' }}>Regístrate gratis y empieza a comprar</p>
 
-        {err && (
-          <div className="alert alert-danger py-2 text-center">
-            {err}
-          </div>
-        )}
+          {err && <div className="alert alert-danger py-2 mb-3">{err}</div>}
 
-        <form onSubmit={onSubmit}>
-          <div className="mb-3">
-            <label className="form-label">Nombre</label>
-            <input
-              className="form-control form-control-lg"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
-          </div>
+          <form onSubmit={onSubmit} noValidate>
+            <div className="mb-3">
+              <label className="form-label">Nombre completo</label>
+              <input
+                className="form-control"
+                placeholder="Juan Pérez"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                autoComplete="name"
+                required
+              />
+            </div>
 
-          <div className="mb-3">
-            <label className="form-label">Email</label>
-            <input
-              type="email"
-              className="form-control form-control-lg"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
-          </div>
+            <div className="mb-3">
+              <label className="form-label">Email</label>
+              <input
+                type="email"
+                className="form-control"
+                placeholder="tu@email.com"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                autoComplete="email"
+                required
+              />
+            </div>
 
-          <div className="mb-3">
-            <label className="form-label">Password</label>
-            <input
-              type="password"
-              className="form-control form-control-lg"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-            />
-          </div>
+            <div className="mb-2">
+              <label className="form-label">Contraseña</label>
+              <div className="input-group">
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  className="form-control"
+                  placeholder="Mín. 8 chars, 1 mayúscula, 1 número"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  autoComplete="new-password"
+                  required
+                />
+                <button type="button" className="btn btn-outline-secondary" onClick={() => setShowPw((v) => !v)} tabIndex={-1}>
+                  {showPw ? '🙈' : '👁️'}
+                </button>
+              </div>
+              {/* Strength bar */}
+              {form.password && (
+                <div className="mt-1">
+                  <div className="progress" style={{ height: 4, borderRadius: 99 }}>
+                    <div
+                      className="progress-bar"
+                      style={{
+                        width: `${(strength.level / 3) * 100}%`,
+                        background: strength.color,
+                        transition: 'width .3s',
+                      }}
+                    />
+                  </div>
+                  <small style={{ color: strength.color }}>{strength.label}</small>
+                </div>
+              )}
+            </div>
 
-          <div className="mb-4">
-            <label className="form-label">Confirmar Password</label>
-            <input
-              type="password"
-              className="form-control form-control-lg"
-              value={form.confirmPassword}
-              onChange={(e) =>
-                setForm({ ...form, confirmPassword: e.target.value })
-              }
-            />
-          </div>
+            <div className="mb-4">
+              <label className="form-label">Confirmar contraseña</label>
+              <input
+                type={showPw ? 'text' : 'password'}
+                className="form-control"
+                placeholder="Repite tu contraseña"
+                value={form.confirmPassword}
+                onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                autoComplete="new-password"
+                required
+              />
+            </div>
 
-          <button
-            className="btn btn-secondary btn-lg w-100"
-            disabled={loading}
-            style={{ borderRadius: 12 }}
-          >
-            {loading ? 'Creando cuenta...' : 'Crear cuenta'}
-          </button>
-        </form>
+            <button className="btn btn-accent w-100 py-2 fw-semibold" disabled={loading}>
+              {loading ? (
+                <span><span className="spinner-border spinner-border-sm me-2" />Creando cuenta...</span>
+              ) : 'Crear cuenta'}
+            </button>
+          </form>
 
-        <div className="text-center mt-4">
-          <small className="text-muted">
-            ¿Ya tienes cuenta?{' '}
-            <span
-              onClick={() => nav('/login')}
-              style={{ cursor: 'pointer' }}
-              className="fw-semibold"
-            >
-              Inicia sesión
-            </span>
-          </small>
+          <p className="mt-3 text-center text-muted" style={{ fontSize: '.875rem' }}>
+            ¿Ya tienes cuenta? <Link to="/login" className="fw-semibold">Inicia sesión</Link>
+          </p>
+        </div>
+
+        {/* Right panel */}
+        <div className="auth-panel-right">
+          <span style={{ fontSize: '3.5rem' }}>🛒</span>
+          <h3 className="fw-bold mt-3 mb-2">Únete a AutoParts</h3>
+          <ul style={{ color: 'rgba(255,255,255,.7)', fontSize: '.9rem', listStyle: 'none', padding: 0, textAlign: 'left' }}>
+            <li className="mb-2">✅ Compra rápida y segura</li>
+            <li className="mb-2">✅ Seguimiento de tus órdenes</li>
+            <li className="mb-2">✅ Repuestos originales garantizados</li>
+            <li>✅ Soporte especializado 24/7</li>
+          </ul>
         </div>
       </div>
     </div>
