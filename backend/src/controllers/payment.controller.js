@@ -1,17 +1,26 @@
 
 import * as paymentService from '../services/payment.service.js';
 
-export const checkout = async (req, res) => {
+export const checkout = async (req, res, next) => {
   try {
-    const { paymentMethod } = req.body;
-    const order = await paymentService.checkout(req.user.id, paymentMethod || 'TARJETA');
+    const { paymentMethod, shippingAddress, notes } = req.body;
+    const order = await paymentService.checkout(
+      req.user.id,
+      paymentMethod || 'TARJETA',
+      shippingAddress,
+      notes
+    );
     res.json(order);
   } catch (e) {
-    res.status(400).json({ message: e.message });
+    next(e);
   }
 };
 
-export const orders = async (req, res) => {
-  const orders = await paymentService.getOrders(req.user.id);
-  res.json(orders);
+export const orders = async (req, res, next) => {
+  try {
+    const list = await paymentService.getOrders(req.user.id);
+    res.json(list);
+  } catch (e) {
+    next(e);
+  }
 };
