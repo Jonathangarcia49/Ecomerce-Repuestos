@@ -18,12 +18,14 @@ services:
     command: sh -c "npm install && npm start"
     environment:
       PORT: 4000
+      NODE_ENV: production
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: repuestosdb
       DB_USER: admin
       DB_PASS: admin123
-      JWT_SECRET: super_secreto_123
+      JWT_SECRET: "d8f3a2c1b0e6f9a7d4c2b5e8f1a3c6d9b2e5f8a1c4d7e0f3a6b9c2d5e8f1a4b7e0f3"
+      CORS_ORIGIN: "http://localhost:3000"
     ports:
       - "4000:4000"
     depends_on:

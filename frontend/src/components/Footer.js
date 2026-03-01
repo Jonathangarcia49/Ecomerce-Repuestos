@@ -37,8 +37,8 @@ export default function Footer() {
             <h6 className="footer-heading">Contacto</h6>
             <ul className="footer-links">
               <li>✉️ soporte@autoparts.com</li>
-              <li>📞 +1 (555) 123-4567</li>
-              <li>📍 123 Auto St, Ciudad, País</li>
+              <li>📞 0994629737</li>
+              <li>📍 Esmeraldas-Ecuador</li>
             </ul>
           </div>
 
